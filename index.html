@@ -9,7 +9,7 @@
       }
       function sendData() {
         var itemData = getTextAreaData();
-        fetch('http://novaro-price-tracker:3000/export', {
+        fetch('https://novaro-price-tracker.onrender.com/export', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
