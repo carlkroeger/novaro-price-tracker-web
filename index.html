@@ -1,38 +1,268 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Lowest Priced Items</title>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z"
+      crossorigin="anonymous"
+    />
+    <style>
+      /*Custom Typography */
+      html {
+        min-height: 100vh;
+      }
+      body {
+        font-family: "Montserrat", sans-serif;
+        background: linear-gradient(
+          to top,
+          #ffffff 40%,
+          #f5f7f4 76%,
+          #f5f7f4 85%
+        );
+      }
+      h1 {
+        font-weight: 800;
+        font-size: 4rem;
+        letter-spacing: 2px;
+        background: linear-gradient(to right, #8bc34a, #689f38);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      /*Custom Colors*/
+      .my-custom-color {
+        /*color: #8bc34a;*/
+      }
+      .tab-content {
+        padding: 1rem;
+      }
+
+      /*Spacing and Layout*/
+      .container {
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+      }
+      /*Animations*/
+      .fade-in {
+        animation: fade-in 1s ease-in-out;
+      }
+      .d-none {
+        display: none;
+      }
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+    <title>Price Tracker for Novaro</title>
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+      crossorigin="anonymous"
+    ></script>
     <script>
+      $(document).ready(function () {
+        $("#myTab a").on("click", function (e) {
+          e.preventDefault();
+          $(this).tab("show");
+        });
+      });
       function getTextAreaData() {
-        var textAreaData = document.getElementsByTagName('textarea')[0]?.value;
+        const textAreaData = document.querySelector("#text-input")?.value;
+        console.log('%c⧭', 'color: #e50000', {textAreaData});
         return textAreaData;
       }
-      function sendData() {
-        var itemData = getTextAreaData();
-        fetch('https://novaro-price-tracker.onrender.com/export', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ itemData })
+      function getFileData(){
+        // Get the file input element
+        const fileInput = document.querySelector('#file-input');
+        // Get the file from the input element
+        const file = fileInput.files[0];
+        return file;
+      }
+      function sendData(target) {
+        const { submitButton, spinner } = showLoading(target);
+        // Create a FormData object
+        const formData = new FormData();
+        formData.append('withStatistics', true);
+        if(target === 'file'){
+          const itemData = getFileData();
+          // Append the value to the FormData object
+          formData.append('file', itemData);
+        }
+        if(target === 'text'){
+          const itemData = getTextAreaData();
+          formData.append('text', itemData);
+        }
+        fetch("https://novaro-price-tracker.onrender.com/export", {
+          method: "POST",
+          body: formData
         })
-        .then(function(response) {
-          return response.blob();
-        })
-        .then(function(blob) {
-          var url = window.URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = 'LowestPricedItems.xlsx';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        });
+          .then(function (response) {
+            return response.blob();
+          })
+          .then(function (blob) {
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "novaro-item-statistics.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            submitButton.classList.remove("d-none");
+            spinner.classList.add("d-none");
+          });
+      }
+      function showLoading(target) {
+        var submitButton = document.getElementById(`submit-${target}-btn`);
+        var spinner = document.getElementById(`spinner-${target}`);
+        submitButton.classList.add("d-none");
+        spinner.classList.remove("d-none");
+        return { submitButton, spinner };
       }
     </script>
-</head>
-<body>
-    <textarea rows="48" cols="50"></textarea>
-    <button onclick="sendData()">Send</button>
-</body>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <h1 class="text-center my-5 my-custom-color fade-in">
+            Price Tracker for Novaro
+          </h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <span class="fade-in">
+            <p>
+              A simple web service that allows you to upload a list of items and
+              it will return an excel with the lowest price of each item.
+            </p>
+
+            <p>Might keep adding stuff later.</p>
+            <p>
+              <code>
+                *Added a tabbed interface to allow the user to choose between
+                uploading a file or pasting the text into a text area.
+              </code>
+            </p>
+            <p>
+              <code> *Added some statistic data to the output. </code>
+            </p>
+          </span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item">
+              <a
+                class="nav-link active"
+                id="file-tab"
+                data-toggle="tab"
+                href="#file"
+                role="tab"
+                aria-controls="file"
+                aria-selected="true"
+                >File</a
+              >
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                id="text-area-tab"
+                data-toggle="tab"
+                href="#text-area"
+                role="tab"
+                aria-controls="text-area"
+                aria-selected="false"
+                >Text Area</a
+              >
+            </li>
+          </ul>
+          <div class="tab-content" id="myTabContent">
+            <div
+              class="tab-pane fade show active"
+              id="file"
+              role="tabpanel"
+              aria-labelledby="file-tab"
+            >
+              <div class="form-group">
+                <label for="file-input">File Input</label>
+                <input type="file" class="form-control-file" id="file-input" />
+              </div>
+              <button
+                onclick="sendData('file')"
+                class="btn btn-primary"
+                id="submit-file-btn"
+              >
+                Submit
+              </button>
+              <span
+                class="spinner-border spinner-border-sm d-none"
+                id="spinner-file"
+                role="status"
+                aria-hidden="true"
+              >
+              </span>
+            </div>
+            <div
+              class="tab-pane fade"
+              id="text-area"
+              role="tabpanel"
+              aria-labelledby="text-area-tab"
+            >
+              <div class="form-group">
+                <label for="text-input">Text Input</label>
+                <textarea
+                  class="form-control"
+                  id="text-input"
+                  rows="7"
+                ></textarea>
+              </div>
+              <button
+                onclick="sendData('text')"
+                class="btn btn-primary"
+                id="submit-text-btn"
+              >
+                Submit
+              </button>
+              <span
+                class="spinner-border spinner-border-sm d-none"
+                id="spinner-text"
+                role="status"
+                aria-hidden="true"
+              >
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+      integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"
+      integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
+      crossorigin="anonymous"
+    ></script>
+  </body>
 </html>
