@@ -71,18 +71,17 @@
       integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
       crossorigin="anonymous"
     ></script>
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
     <script>
+      const env = 'production';
+      //const env = 'development';
+      const envurl = env === 'production' ? 'https://novaro-price-tracker.onrender.com' : 'http://localhost:3000';
       $(document).ready(function () {
         $("#myTab a").on("click", function (e) {
           e.preventDefault();
           $(this).tab("show");
         });
       });
-      function getTextAreaData() {
-        const textAreaData = document.querySelector("#text-input")?.value;
-        console.log('%c⧭', 'color: #e50000', {textAreaData});
-        return textAreaData;
-      }
       function getFileData(){
         // Get the file input element
         const fileInput = document.querySelector('#file-input');
@@ -100,28 +99,17 @@
           // Append the value to the FormData object
           formData.append('file', itemData);
         }
-        if(target === 'text'){
-          const itemData = getTextAreaData();
-          formData.append('text', itemData);
-        }
-        fetch("https://novaro-price-tracker.onrender.com/export", {
+        fetch(envurl+'/export', {
           method: "POST",
-          body: formData
-        })
+          body: formData,
+          headers: {
+              'Accept': 'application/json',
+          }
+        }).then(response => response.json())
           .then(function (response) {
-            return response.blob();
-          })
-          .then(function (blob) {
-            var url = window.URL.createObjectURL(blob);
-            var a = document.createElement("a");
-            a.href = url;
-            a.download = "novaro-item-statistics.xlsx";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            submitButton.classList.remove("d-none");
-            spinner.classList.add("d-none");
-          });
+          const { uid, resultUrl } = response;
+          connectToSocket({ uid, resultUrl, submitButton, spinner });
+        });
       }
       function showLoading(target) {
         var submitButton = document.getElementById(`submit-${target}-btn`);
@@ -129,6 +117,40 @@
         submitButton.classList.add("d-none");
         spinner.classList.remove("d-none");
         return { submitButton, spinner };
+      }
+      // make a socket connection to the server, to get log messages
+      function connectToSocket({ uid, resultUrl, submitButton, spinner }) {
+        var socket = io.connect(envurl);
+        socket.on("connect", function () {
+          clearLog();
+          serverLog("Connected");
+          socket.emit("export", uid);
+        });
+        socket.on("disconnect", function () {
+          serverLog("Disconnected");
+        });
+        socket.on("message", function (message) {
+          serverLog(message);
+        });
+        socket.on("result", function (result) {
+          console.log('%c⧭', 'color: #1d5673', {result});
+          if(result.status === 'ready'){
+            window.open(resultUrl, '_blank');
+          }
+          submitButton.classList.remove("d-none");
+          spinner.classList.add("d-none");
+        });
+        function serverLog(message){
+          console.log(message);
+          var serverLogTextArea = document.getElementById("server-log");
+          serverLogTextArea.innerHTML += message + "\n";
+          // set the scroll position to the bottom
+          serverLogTextArea.scrollTop = serverLogTextArea.scrollHeight;
+        }
+        function clearLog(){
+          var serverLogTextArea = document.getElementById("server-log");
+          serverLogTextArea.innerHTML = "";
+        }
       }
     </script>
   </head>
@@ -159,6 +181,9 @@
             <p>
               <code> *Added some statistic data to the output. </code>
             </p>
+            <p>
+              <code> *Added server logs. </code>
+            </p>
           </span>
         </div>
       </div>
@@ -180,13 +205,13 @@
             <li class="nav-item">
               <a
                 class="nav-link"
-                id="text-area-tab"
+                id="serverl-log-tab"
                 data-toggle="tab"
-                href="#text-area"
+                href="#log"
                 role="tab"
-                aria-controls="text-area"
+                aria-controls="server-log"
                 aria-selected="false"
-                >Text Area</a
+                >Log</a
               >
             </li>
           </ul>
@@ -218,32 +243,25 @@
             </div>
             <div
               class="tab-pane fade"
-              id="text-area"
+              id="log"
               role="tabpanel"
-              aria-labelledby="text-area-tab"
+              aria-labelledby="server-log-tab"
             >
+            <div>
               <div class="form-group">
-                <label for="text-input">Text Input</label>
-                <textarea
-                  class="form-control"
-                  id="text-input"
-                  rows="7"
-                ></textarea>
+                <label for="server-log">Server Log</label>
+                <div id="server-log-container">
+                  <textarea id="server-log" name="server-log" rows="8" cols="50" readonly></textarea>
+                </div>
               </div>
-              <button
-                onclick="sendData('text')"
+              <!-- test socke connection button -->
+              <!-- <button
+                onclick="connectToSocket()"
                 class="btn btn-primary"
-                id="submit-text-btn"
+                id="connect-to-socket-btn"
               >
-                Submit
-              </button>
-              <span
-                class="spinner-border spinner-border-sm d-none"
-                id="spinner-text"
-                role="status"
-                aria-hidden="true"
-              >
-              </span>
+                Connect to socket
+              </button> -->
             </div>
           </div>
         </div>
